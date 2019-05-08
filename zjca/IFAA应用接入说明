@@ -25,10 +25,10 @@
 	  <td style="text-align:center;">黄子烨</td>
 	</tr>
 	<tr  style="height:35px">
-	  <td style="text-align:center;"></td>
-	  <td style="text-align:center;"></td>
-	  <td style="text-align:center;"></td>
-	  <td style="text-align:center;"></td>
+	  <td style="text-align:center;">2019/5/6</td>
+	  <td style="text-align:center;">2.0.0</td>
+	  <td style="text-align:center;">添加SDK直连模式</td>
+	  <td style="text-align:center;">黄子烨</td>
 	</tr>
 	<tr  style="height:35px">
 	  <td style="text-align:center;"></td>
@@ -42,6 +42,12 @@
 	  <td style="text-align:center;"></td>
 	  <td style="text-align:center;"></td>
 	</tr>
+	<tr  style="height:35px">
+	  <td style="text-align:center;"></td>
+	  <td style="text-align:center;"></td>
+	  <td style="text-align:center;"></td>
+	  <td style="text-align:center;"></td>
+	</tr>
 </table>
 
 
@@ -50,1451 +56,669 @@
 <br />
 
 
-## 1. 前言
+# 1. 概述
 
-本文档为 IFAA 的应用接入 `BizServer` 模式说明文档。通过引入 `BizServer` 的方式，
-简化了接入 `IFAA OpenAPI` 的工作。
+## 1.1 编写目的
 
+本设计说明文档的编写目的是为了方便接入方快速接入 `IFAA`。
 
-## 2. 适用范围
 
+## 1.2 适用范围
 
-本文档用来帮助开发人员理解 `IFAA BizServer` 模式的整体架构和接入方法。
 
+本文档适用 Android 端需要接入 `IFAA` 指纹的接入方。
 
 
-## 3. 术语定义
 
+## 1.3 使用
 
-### 3.1 术语
 
-| 术语 | 描述 |
-| --- | --- |
-| 证书 / 公钥证书 | 用来证明持有方身份的一种数字表现形式 |
-| 公钥 / 私钥 | 非对称密码学领域的两种类型的密钥 |
-| 客户 Server | 代表服务提供商的业务服务器 |
-| IFAA OpenAPI 服务 | 部署在云端的 IFAA 服务，为支付宝等业务应用提供
-服务 |
+### 1.3.1 引入 `SDK` 包
 
+IFAA SDK 提供了 IFAA 指纹的能力，SDK：
 
-
-### 3.2 缩略语
-
-
-| 术语 | 描述 |
-| --- | --- |
-| FW | Framework |
-| IFAABizServer | IFAA 本地免密后台服务 |
-| TEE | 可信执行环境 |
-| Token | 用户进行指纹注册时生成的唯一标识 |
-
-
-
-
-## 4. 总体架构
-
-
-![图一](images/IFAA_01.png)
-
-<p style="text-align:center;">图一</p>
-
-
-如图 1 所示，整个系统集成分成三部分：
-
-**1. IFAA 已部署组件与服务**
-
-- `IFAA OpenAPI Service`，在云端部署的能够支持包括支付宝在内的海量请求的 IFAA 服务。
-
-- `IFAA TA`，在终端设备出厂前部署在 TEE 中的 IFAA 可信应用，持有
-IFAA 根公钥，设备公钥已经上传至 IFAA 服务 。目前，市场上出售的
-所有智能手机都支持 IFAA。
-
-- `IFAA Biz Server`，部署在云端，实现第三方应用快速接入 IFAAOpen API
-服务。
-
-
-**2. IFAA 提供集成组件**
-
-
-- `IFAA Client FW`，转发业务 App 同 IFAA TA 的通信消息同时帮助 APP
-完成在 Biz Server 上注册验证注销动作。
-
-
-**3. 客户应用平台**
-
-
-- `客户 Server`，包含业务逻辑的后台服务器，在 IFAA 相关流程的最后，
-与 IFAA Biz Server 交互对结果做校验。
-
-- `客户 App`，部署在终端的业务应用，利用 IFAA Client FW 实现认证服
-务，并把最后需要校验的结果传递给客户 Server。
-
-
-
-## 5. 服务接口
-
-
-IFAA 本地免密的的交互接口包括 `注册`、`校验`、`注销`、`状态查询`和`多指位更新` 五个主要接口。
-
-
-
-### 5.1 注册
-
-
-用户在客户 APP 端打开指纹验证功能时，需要调用 IFAA Client FW 注册接口进行注册，进行注册前需要客户 APP 对用户的身份进行认证。客户 APP 需要提
-供关联用户信息、业务流水号等注册必要信息。注册流程请参考下图：
-
-
-![图二](images/IFAA_02.png)
-
-<p style="text-align:center;">图二</p>
-
-
-
-### 5.2 校验
-
-
-客户 APP 可根据实际业务场景提示用户进行指纹校验，校验流程和注册流程相似。指纹校验流程请参考下图：
-
-
-![图三](images/IFAA_03.png)
-
-<p style="text-align:center;">图三</p>
-
-
-### 5.3 注销
-
-用户在 APP 端关闭指纹验证功能时调用注销接口完成该用户的指纹认证注销，后台将移除该用户指纹认证 `Token` 信息，详细流程请参考下图：
-
-
-
-![图四](images/IFAA_04.png)
-
-<p style="text-align:center;">图四</p>
-
-
-
-### 5.4 状态查询
-
-
-
-状态查询主要用于客户 APP 在需要确定用户是否已经在该终端注册过指纹的场景，如用户启动新安装的客户 APP 时，需要检查该用户是否已在该设备上
-注册过指纹，以避免用户重复注册。详细流程请参考下图：
-
-
-![图五](images/IFAA_05.png)
-
-<p style="text-align:center;">图五</p>
-
-
-
-## 5.5 多指位更新
-
-
-“多指位”是为了提高安全性和用户友好程度，在注册的指纹发生变化时通知应用采取合理措施的一种机制。当用户使用未注册的指位进行校验时，
-IFAAClientFW 会返回对应的错误信息，客户 APP 应根据该信息提示用户并认证用户身份，调用 IFAAClientFW 指位更新接口完成新指位的注册。
-
-
-
-
-#### 5.5.1. Android
-
-IFAA 在 Android 上的指纹维护方面有两种策略。较早的策略是只有一个手指开通指纹支付 。为了提高应用的用户友好设计， 提出“多指位”的策略。在用
-户使用了非 IFAA 注册指纹进行校验的时候，服务通知应用发生多指位错误，需要应用进行处理。从 2016 年 10 月之后上市的机器，基本上都支持多指位功能 。
-
-
-
-![图六](images/IFAA_06.png)
-
-<p style="text-align:center;">图六</p>
-
-
-
-## 6. 服务接入
-
-### 6.1 接入准备
-
-
-#### 6.1.1 登记 APPID
-
-
-在正式接入服务之前，需要提供接入方公司基本信息进行登记并产生唯一的接入标识 APPID，该标识代表接入方唯一身份，每次对服务的调用都需要该数据
-作为请求参数。
-
-接入方还需要提供接入 APP 的 Android 包名和 iOS 的 BundleID 进行登记，才可开通对应的应用使用服务权限。具体工作请体现联系一砂的技术窗口。
-
-
-
-#### 6.1.2 签名密钥
-
-
-IFAA BizServer 服务使用 RSA2048 签名算法实现与接入业务服务端的互信，签名和验签。可以使用 openssl 工具生成签名密钥，具体方法如下：
-
-第一步：生成私钥，这里我们指定私钥的长度为 2048
 
 ```
-openssl genrsa -out privatekey.pem 2048
-```
-
-第二步：根据私钥生成对应的公钥：
-
-```
-openssl rsa -in privatekey.pem -pubout -out publickey.pub
-```
-
-第三步：私钥转化成 pkcs8 格式，将转化好的私钥写到rsa_private_key_pkcs8.pem 文件里
-
-```
-openssl pkcs8 -topk8 -inform PEM -in privatekey.pem -outform PEM -nocrypt > privatekey_pkcs8.pem
-```
-
-生成的 `privatekey_pkcs8.pem` 内容为私钥，`publickey.pub` 内容为公钥，私钥将用作签名方法的入参，公钥提交到一砂云平台。
-
-> 注意：密钥文件里除“-----BEGIN PRIVATE KEY-----”和“-----END PRIVATE KEY-----”外的内容才是密钥数据。
-
-
-
-**沙箱环境公钥：**
-
-```
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjTLyXC+u95QYft0
-EJAwwMg5CvkcgVNNgI31wp2ZOvL6PwlYZEGpwczYGydB/X2+lUtyakWBIKxu
-EWYQC+p4G4Aeq0o3M6qUjT6qWFCDkqFAeWuzckaA/S4Qxq3PfG7jCoEJqWHT
-wldkrXKDzrB/V57s25V1PNdAuXs0b3kSiqmad9cpOoIeUSLyXWG+a0XPR93WL9
-5nmXbYDlIcE6gp79xyLSA4dEc4y9m3HwnCsUmwKGfjzmr3pU2Wlnia2T/AtvDV
-F5YvPLRIYo5qMVthTwntSadP3w0PYm2dnGjuIkPx8/w9HrmA+vQSClN51XDsiJ7
-B5bS8jcTq5IeZ+1G3/+QIDAQAB
+// 基础包，测试使用
+esand_cloud_core-debug.1.0.0.aar
+// 基础包，正式环境使用
+esand_cloud_core-release.1.0.0.aar
+// 测试环境使用
+esand_cloud_ifaa-debug.2.0.0.aar
+// 正式环境使用
+esand_cloud_ifaa-release.2.0.0.aar
 ```
 
 
 
-### 6.2 服务端接入
+### 1.3.2 初始化 `IFAABaseInfo`
 
 
-#### 6.2.1 访问地址
+在使用 `Android SDK` 前需要初始化 `IFAABaseInfo`。
 
 
-沙箱环境地址：https://47.102.50.235:4443/gateway
-
-
-
-#### 6.2.2 网关
-
-
-##### 6.2.2.1 网关请求参数
-
+```
+/**
+* 初始化数据
+*/
+private void initIfaaBaseInfo () {
+    // app 需要提供给 ifaa 一些基本信息
+    ifaaBaseInfo = new IFAABaseInfo (this);
+    // TODO 请一定要设定为能够唯一代表自己应用的名字，比如"**银行**手机银行应用"
+    // ifaaBaseInfo.setAppName("etasDemo");//在 2.0.0 b版本中去掉了
+    // 认证类型，默认为指纹 AUTHTYPE_FINGERPRINT
+    ifaaBaseInfo.setAuthType(ifaaAuthType);
+    // 业务 ID, 请保持唯一，记录在 ifaa log 中，当出问题时候，查问题用。
+    ifaaBaseInfo.setTransactionID(mEtTransactionId.getText().toString());
+    // 业务的附加信息，记录在 ifaa log 中，当出问题时，查问题用。
+    ifaaBaseInfo.setTransactionPayload(mEtTransactionPayload.getText().toString());
+    ifaaBaseInfo.setTransactionType(mEtTransactionType.getText().toString());
+    // TODO 用户 id, 此值参与 ifaa 业务以及 token 的生成，务必保证其唯一，可以传入用户名的 hash
+    值来脱敏。
+    ifaaBaseInfo.setUserID(mEtUserId.getText().toString());
+    // 设置使用 SDK 提供的指纹弹框页面
+    // reasonTitle、fallbackTitle
+    ifaaBaseInfo.usingDefaultAuthUI("EsandDemo","输入密码");
+    // 一砂下发的 APPID
+    // ifaaBaseInfo.setAppId("xxxxxx");//在 2.0.0 b版本中去掉了
+}
+```
 
 
 | 字段 | 类型 | 描述 |
 | --- | --- | --- |
-| ver | String | 消息版本 |
-| act | String | 详细请参照6.2.2.3|
-| appId | String | 应用ID |
-| bizContent | String | 业务数据，json字符串，由SDK生成。 |
-| sign | String | 使用上传给 BizServer 服务的公钥相应的私钥对 bizContent 内容进行签名，签名结果做base64编码 |
-
-
-##### 6.2.2.2 网关响应参数
-
-
-| 字段 | 类型 | 描述 |
-| --- | --- | --- |
-| ver | String | 消息版本 |
-| act | String | 详细请参照6.2.2.3 |
-| code | String | GateWay服务响应码，详细参照6.2.2.4 |
-| msg | String | GateWay服务响应消息，详细参照6.2.2.4 |
-| bizContent | String | 业务返回结果，json字符串，具体内容参考各业务的设计文档。 |
-| sign | String | 使用BizServer服务的私钥对bizContent内容进行签名，签名结果做base64编码。 |
+| authType | Int | 认证方式 |
+| appid | String | 一砂云下发的代表接入方应用身份的appID,,不能为null |
+| userId | String | 用户ID或者能够区别用户的唯一表示信息。 |
+| transId | String | 能够唯一区别本次IFAA操作的交易ID。此交易ID可以唯一定位此次操作。 |
+| transPayload | String | |
+| transType | String | 本次IFAA操作的交易类型 |
+| reasonTitle | String | 指纹认证弹框页面 title。 |
+| fallbackTitle | String | 只有在认证流程中的指纹认证弹框页面，在错误一次的后显示出的可选项按钮标题，如果传入为空，则不显示。 |
 
 
 
-##### 6.2.2.3 ACTION 值
-
-<table style="width:60%;">
-<tr style="text-align:center">
-<th>服务</th>
-<th>Action</th>
-<th> 说明</th>
-</tr>
-
-<tr style="text-align:center">
-<td rowspan="7">ifaa</td>
-<td>ifaa/regInit</td>
-<td>注册初始化</td>
-</tr>
-
-<tr style="text-align:center">
-<td>ifaa/reg</td>
-<td>注册</td>
-</tr>
-
-<tr style="text-align:center">
-<td>ifaa/authInit</td>
-<td>认证初始化</td>
-</tr>
-
-<tr style="text-align:center">
-<td>ifaa/auth</td>
-<td>认证</td>
-</tr>
-
-<tr style="text-align:center">
-<td>ifaa/unreg</td>
-<td>注销</td>
-</tr>
-
-<tr style="text-align:center">
-<td>ifaa/add</td>
-<td>指位更新</td>
-</tr>
-
-<tr style="text-align:center">
-<td>ifaa/cap</td>
-<td>查询</td>
-</tr>
-
-</table>
+### 1.3.3 查询本机是否支持 `IFAA`
 
 
-
-##### 6.2.2.4 返回码说明
-
-
-| 编号 | 响应码 | 响应信息 |
-| --- | --- | --- |
-| 1 | 0000 | 网关处理正常 |
-| 2 | 1999 | 系统异常，请联系管理员。 |
-| 3 | 1001 | 请求参数为空！ |
-| 4 | 1002 | 应用 ID 内容为空。 |
-| 5 | 1003 | 应用 ID 错误。AppId=xx |
-| 6 | 1004 | 请求 url 内容为空。 |
-| 7 | 1005 | 请求 url 错误。Action=xx |
-| 8 | 1006 | 业务数据内容为空。 |
-| 9 | 1007 | 签名数据内容为空。 |
-| 10 | 1008 | 业务数据验签失败！ |
-| 11 | 1009 | 费用不足，服务暂停使用，请及时续费。 |
-| 12 | 1010 | 没有 XX 服务权限。 |
-| 13 | 1011 | 路由信息未取到。serviceName: XX |
-| 14 | 1012 | 不支持的请求方式。requestType: XX |
-| 15 | 1013 | 不支持的密钥算法。keyAlogrithm: XX |
+`IFAAManager` 中提供了判断当前设备是否支持某种认证类型，现有的认证类型有指纹、人脸，认证类型，详见 `IFAABaseInfo.IFAAAuthTypeEnum` 的枚举。
 
 
-
-#### 6.2.3 bizContent
-
-
-##### 6.2.3.1 注册初始化
-
-
-
-
-<table>
-<tr style="text-align:center;"><th colspan="3">请求参数</th></tr>
-
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
+```
+/**
+* 是否支持 IFAA
+* @param context 执行环境上下文类
+* @param authType 认证类型，详见 IFAABaseInfo.IFAAAuthTypeEnum 的枚举
+* @return 是否支持 IFAA
+*/
+public static boolean isSupportIFAA(Context context, IFAABaseInfo.IFAAAuthTypeEnum authType) {}
+```
 
 
-<tr>
-<td>transPayload</td>
-<td>String</td>
-<td>请求的扩展信息</td>
-</tr>
+使用该函数：
 
-<tr>
-<td>transType</td>
-<td>String</td>
-<td>交易类型</td>
-</tr>
-
-<tr>
-<td>appId</td>
-<td>String</td>
-<td>应用 ID</td>
-</tr>
-
-<tr>
-<td>userId</td>
-<td>String</td>
-<td>用户的标识 ID</td>
-</tr>
-
-<tr>
-<td>packageId</td>
-<td>String</td>
-<td>应用的packageId或者bundleId</td>
-</tr>
-
-<tr>
-<td>platform</td>
-<td>String</td>
-<td>操作系统平台</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>ifaaVer</td>
-<td>String</td>
-<td>IFAA 协议版本</td>
-</tr>
-
-<tr>
-<td>ifaaMsg</td>
-<td>String</td>
-<td>IFAA 消息 message 字段说明：
-手机端通过获取本机的基本信息（secData），使用base64 进行编码，以下是编码前的示例：
-<pre>
-{
-    "ai": "2#1#0#2#20#100#6",
-    "ap": "",
-    "cm": "HUAWEI-Z101",
-    "di": "C088zdlW6jrQAr8k8WIinVIYCeZIhBIyBM2n\u0002tYzsf5PGpDKUIN_9w==",
-    "pm": "MHA-AL00",
-    "sv": ""
+```
+// 检查本机是否支持 IFAA
+if (!IFAAManager.isSupportIFAA(this, IFAABaseInfo.IFAAAuthTypeEnum.AUTHTYPE_FINGERPRINT)){
+    tvShowInfos.append("此设备不支持 IFAA 指纹");
 }
-</pre>
-</td>
-</tr>
+// 其他判断
+…
+```
 
-<tr style="text-align:center;"><th colspan="3">响应参数</th></tr>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
 
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
+### 1.3.4 接入方式一（服务端连接）
 
-<tr>
-<td>code</td>
-<td>String</td>
-<td>响应状态值</td>
-</tr>
+#### 1.3.4.1 注册
 
-<tr>
-<td>msg</td>
-<td>String</td>
-<td>ifaa 消息，通过了 base64 进行编码，以下是编码前的
-示例：
-<pre>
-{
-	"header": {
-		"appID": "ABC_Inc_Alipay_IFAA_Server_01",
-		"authType": 1,
-		"ipv": {
-			"mj": 1,
-			"mn": 1
-		},
-		"op": "Reg",
-		"opType": "Request",
-		"serverData": ""
-	},
-	"signedData": {
-		"identifyData": "AQCTAwWABAACAAAABoAXAgEAAAACAAAAAAEAAM-
-		3 pWizOFMtbzoBvppqkjl6GTogfnLD - zYBaS_4
-		RBDVu - M duIDOwSSrkIyVRrfO68KJjS0pRth2nyR7BzAayccEwKNdfp -
-		bmMP8iVDrPX9hXbuGPTw
-		9 KoGFRiiLvkP5Qh13V2rdmQ3kKgwaqxrZm7FGEgXOzXiJs3
-		DnmMELbks6gwrTdMHXrnylB__RuoI
-		vJD3ncjXitUo_UrqILN56nDqaSCVvWamQhiGeoZAlCtUFUx
-		I0NggmyEqINPi9Tr_7FBGiJAypOUT
-		SdC_4R5id5y7juiYVV0HqQCBedkdjNSLTcSweGzuCtLMtEk
-		KDgkvW1Ho9kDhjYk8TRDovDebWjED
-		AAAAAQABAAEAAAmRV_NRkJ3RKR3aFUUrPugxhl0b1lmd1y6
-		wEqr9TdZrd90cTrNrtksMz5amV5Cv
-		NNOMg5ivP_QbS0ik1JtNo5t87AB5aj63F5jgUCeAJMg6cVM
-		H0iY - _yGC3zYvkK2BH0frk065eIvX
-		Ozv YzJAFI7rQ_XTJdcpFM7CtxyEdXY1sKHP1Dg_5xXv9VJ3FNG
-		6 TJzkc8g9qqd359A2SVEwm2vY
-		5 tya1KXz7XySmkkSMfn8 -
-		nPp8ZH5mzpE21saO7WoqFfOw2RzZlO1w lTFVvXWG2NN2eLT - d1cY9i
-		6 d6LKXMBCJeUujkQy1O3HtgCHRaSyBWbjh0W57jwJQVfbt0
-		3 tFkIgAQAAwAAAAeAAAEVJtTEmZwm
-		DmqBSditu6wLYjLkuSibBIwrrVw44xnWKp0Fg4b fFbRzBxi7OSf9oxVS8n4movhJ96Jqs9zVaB7
-		ofrvTdP09jLbo9srjl72qK - kRgStXXpdSNEj3Tk0j7Xy ze7LiqqkTvn3XZlnogcSxgoGC4DhgUq
-		PJrUw8b2m4oweEDgCpR7wiJ79dZJFRdW4Wo52t_TXRgjnZn
-		lkjNDYu8Do - 9 A2Qm2JIPfOjB8M8M6syGIzrCalORGFIOPQuIYsSaBwYkFogwG6Y7b3n_fQjysULV
-		Rz2VTa5g2Yg9Da3nq2kCanUvTFaoL
-		W -
-		rJ8d4AJFL5B1HidlpaftjScz85AgBgAAGAIABMOThQTUM1N
-		3 NYM3pEUzBKams4TEFKc01DTmtY
-		WUpyQgKAKABBQkMtY2FhNDE3MjQtY2JmYi00YjlhLTk4ZWI
-		tMGI3ZDlkZmRlNGYzA4AEAAEAAAAR
-		gAQAYAAAAA ==
-		",
-		"scheme": "IFAFV1TLV"
-	}
-}
-</pre>
-</td>
-</tr>
 
-</table>
+![注册](images/IFAA_001.png)
 
+<p style="text-align:center;">注册</p>
 
 
-##### 6.2.3.2 注册
+SDK 对外提供 `com.esandinfo.ifaa.biz.IFAARegister` 类用以实现 IFAA 的注册流程，主要有如下三个函数：
 
 
+```
+// 注册初始化
+public IFAAResult regInit()
 
-<table>
-<tr style="text-align:center;"><th colspan="3">请求参数</th></tr>
+// 执行注册操作
+public void register(String ifaaMsg, IFAACallback IFAACallback)
 
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
+// 完成注册操作
+public IFAAResult regFinish(String ifaaMsg)
+```
 
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
 
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
+##### 1.3.4.1.1 注册初始化
 
+```
+public IFAAResult regInit()
+```
 
-<tr>
-<td>transPayload</td>
-<td>String</td>
-<td>请求的扩展信息</td>
-</tr>
 
-<tr>
-<td>transType</td>
-<td>String</td>
-<td>交易类型</td>
-</tr>
+- 入参：无
+- 出参：`IFAAResult ifaaResult`
 
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，`ifaaResult.getMsg()` 为注册第一次请求需要发送到服务端的报文，其他的 `ifaaResult.getCode()` 可能出现的错误码如下表格：
 
-<tr>
-<td>appId</td>
-<td>String</td>
-<td>应用 ID</td>
-</tr>
 
-<tr>
-<td>userId</td>
-<td>String</td>
-<td>用户的标识 ID</td>
-</tr>
-
-<tr>
-<td>packageId</td>
-<td>String</td>
-<td>应用的packageId或者bundleId</td>
-</tr>
-
-<tr>
-<td>platform</td>
-<td>String</td>
-<td>操作系统平台</td>
-</tr>
-
-
-<tr>
-<td>ifaaMsg</td>
-<td>String</td>
-<td>
-ifaa 消息，通过了 base64 进行编码，以下是编码前的示例：
-<pre>
-{
-	"exts": [{
-		"data": "etasDemo",
-		"id": "appname"
-	}],
-	"header": {
-		"appID": "ABC_Inc_Alipay_IFAA_Server_01",
-		"authType": 1,
-		"deviceModel": "MEIZU-A02",
-		"ipv": {
-			"mj": 1,
-			"mn": 1
-		},
-		"op": "Reg",
-		"opType": "Response",
-		"serverData": ""
-	},
-	"signedData": {
-		"identifyData": "AwDTAgQAwwEOgAQA3_4BmBGABABAAAAAA4AEAA
-		EAAAANgDAAAAUAAgACAAIT8dB1DafD4abIETxJ
-		uis9TLJEk7z6rbSj_Ztf_tMl7n3o9k1iIhokAYA
-		gAGU4ZjlUZUI1VzhYVzdQdWxsZE8ybjduNm94
-		VFFnbWp1DIAEAAEAAAALgAsBAAEAANYpm4IvS5p
-		SKGjXJ5TCW - 9 tHilJHvDdCbq - 8 o9t0E9mZqEU
-		zAk1R2VTebE4V5B3JBLZFsiQi1Uh0YQzy8kthng
-		Z9OoyL8 - QFPCdHC136WPLh_lD1Gd5SeHxoYXX
-		xDR2LgF62A_4plneDNjpiOvdexhELa9ABekvs5g
-		5 JGFhVpU48Psc017GxK4BfSJPZR8SH9DfxQGD
-		Zgq2w_AL0io_RRG4qKe_ -
-		z7irH2Z4ZOwiNaCy5txuiREu5PPB1Asc8J VERs2ULqM0hc2ylurUqB
-		iM6F2ifp5CC11TsDCMorcE6OyDADixGDFfEfN44
-		qkhY8U4RkQmwsAWeJ - KWWIHhxdVEDAAAAAQAB
-		CoAEAAMAAAACgCgAQUJDLWFjMjA0MWJmLTAwZDM
-		tNDIwOC04NzJlLTQzNWUwZmJhMzE4NQmABAAB
-		AAAACIAEAAMAAAAHgAABgAIdL9BtQ4ZOu3mTrb_
-		WW2IVjs6Df98yV36tzvPcjPgWi2Kd7iKDUn_P
-		fndAKp2Kjq45n29uv3AwCHJMQmhfQ8jcqVpdnS4
-		mT5zm2MNbPnPGw8k5Gj7rTUUlwTZSqAHuBsxr
-		GEGKA fiBe4vYzRhfjuLnHPEKzpKtf_pxZiAIxbUujqSQ
-		Nc7IXCbH2 - Umrk2C0oU94t71isK - Pz6
-		zms3lZedm17tfidb2NiLzlm_AOamfz8B6TvEpnT
-		s1Yp9hDjftyaqiEZ98DpslHP0pxdbbLjwKUXG
-		CaX1I_ctt9HcTcN1nNC5PeJYgrFrBs8UAiJXs Mc_7hqrnc_L - 8 RClQDPA ==
-		",
-		"scheme": "IFAFV1TLV"
-	}
-}
-</pre>
-</td>
-</tr>
-
-<tr style="text-align:center;"><th colspan="3">响应参数</th></tr>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>code</td>
-<td>String</td>
-<td>响应状态值</td>
-</tr>
-
-<tr>
-<td>msg</td>
-<td>String</td>
-<td>响应消息</td>
-</tr>
-
-<tr>
-<td>deviceId</td>
-<td>String</td>
-<td>设备 ID</td>
-</tr>
-
-<tr>
-<td>token</td>
-<td>String</td>
-<td>代表用户和 IFAA 绑定消息的令牌</td>
-</tr>
-
-<tr>
-<td>time</td>
-<td>String</td>
-<td>响应消息发送的系统时间，精确到毫秒，共 17
-位，格式：20121227180001165</td>
-</tr>
-
-</table>
-
-
-
-
-##### 6.2.3.3 认证初始化
-
-
-
-
-<table>
-<tr style="text-align:center;"><th colspan="3">请求参数</th></tr>
-
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-
-<tr>
-<td>transPayload</td>
-<td>String</td>
-<td>请求的扩展信息</td>
-</tr>
-
-<tr>
-<td>transType</td>
-<td>String</td>
-<td>交易类型</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>appId</td>
-<td>String</td>
-<td>应用 ID</td>
-</tr>
-
-<tr>
-<td>userId</td>
-<td>String</td>
-<td>用户的标识 ID</td>
-</tr>
-
-<tr>
-<td>packageId</td>
-<td>String</td>
-<td>应用的packageId或者bundleId</td>
-</tr>
-
-<tr>
-<td>platform</td>
-<td>String</td>
-<td>操作系统平台</td>
-</tr>
-
-<tr>
-<td>token</td>
-<td>String</td>
-<td>代表注册状态的标识信息</td>
-</tr>
-
-<tr>
-<td>ifaaVer</td>
-<td>String</td>
-<td>IFAA 协议版本</td>
-</tr>
-
-
-<tr>
-<td>ifaaMsg</td>
-<td>String</td>
-<td>IFAA 消息</td>
-</tr>
-
-<tr style="text-align:center;"><th colspan="3">响应参数</th></tr>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>code</td>
-<td>String</td>
-<td>响应状态值</td>
-</tr>
-
-<tr>
-<td>msg</td>
-<td>String</td>
-<td>ifaa 消息</td>
-</tr>
-
-</table>
-
-
-
-##### 6.2.3.4 认证
-
-
-
-
-<table>
-<tr style="text-align:center;"><th colspan="3">请求参数</th></tr>
-
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-
-<tr>
-<td>transPayload</td>
-<td>String</td>
-<td>请求的扩展信息</td>
-</tr>
-
-<tr>
-<td>transType</td>
-<td>String</td>
-<td>交易类型</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>appId</td>
-<td>String</td>
-<td>应用 ID</td>
-</tr>
-
-<tr>
-<td>userId</td>
-<td>String</td>
-<td>用户的标识 ID</td>
-</tr>
-
-<tr>
-<td>packageId</td>
-<td>String</td>
-<td>应用的packageId或者bundleId</td>
-</tr>
-
-<tr>
-<td>platform</td>
-<td>String</td>
-<td>操作系统平台</td>
-</tr>
-
-
-<tr>
-<td>ifaaMsg</td>
-<td>String</td>
-<td>IFAA 消息</td>
-</tr>
-
-<tr style="text-align:center;"><th colspan="3">响应参数</th></tr>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>code</td>
-<td>String</td>
-<td>响应状态值</td>
-</tr>
-
-<tr>
-<td>deviceId</td>
-<td>String</td>
-<td>设备 ID</td>
-</tr>
-
-<tr>
-<td>token</td>
-<td>String</td>
-<td>代表用户和 IFAA 绑定消息的令牌</td>
-</tr>
-
-<tr>
-<td>time</td>
-<td>String</td>
-<td>响应消息发送的系统时间，精确到毫秒，共 17位，格式：20121227180001165</td>
-</tr>
-
-<tr>
-<td>msg</td>
-<td>String</td>
-<td>响应消息</td>
-</tr>
-
-</table>
-
-
-
-
-##### 6.2.3.5 注销
-
-
-<table>
-<tr style="text-align:center;"><th colspan="3">请求参数</th></tr>
-
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-
-<tr>
-<td>transPayload</td>
-<td>String</td>
-<td>请求的扩展信息</td>
-</tr>
-
-<tr>
-<td>transType</td>
-<td>String</td>
-<td>交易类型</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>appId</td>
-<td>String</td>
-<td>应用 ID</td>
-</tr>
-
-<tr>
-<td>userId</td>
-<td>String</td>
-<td>用户的标识 ID</td>
-</tr>
-
-<tr>
-<td>packageId</td>
-<td>String</td>
-<td>应用的packageId或者bundleId</td>
-</tr>
-
-<tr>
-<td>platform</td>
-<td>String</td>
-<td>操作系统平台</td>
-</tr>
-
-
-<tr>
-<td>token</td>
-<td>String</td>
-<td>代表注册状态的标识信息</td>
-</tr>
-
-<tr>
-<td>ifaaVer</td>
-<td>String</td>
-<td>IFAA 协议版本</td>
-</tr>
-
-<tr>
-<td>ifaaMsg</td>
-<td>String</td>
-<td>IFAA 消息</td>
-</tr>
-
-<tr style="text-align:center;"><th colspan="3">响应参数</th></tr>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-<tr>
-<td>code</td>
-<td>String</td>
-<td>响应状态值</td>
-</tr>
-
-
-<tr>
-<td>time</td>
-<td>String</td>
-<td>响应消息发送的系统时间，精确到毫秒，共 17位，格式：20121227180001165</td>
-</tr>
-
-<tr>
-<td>msg</td>
-<td>String</td>
-<td>响应消息</td>
-</tr>
-
-</table>
-
-
-
-##### 6.2.3.6 查询
-
-
-
-
-<table>
-<tr style="text-align:center;"><th colspan="3">请求参数</th></tr>
-
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-
-<tr>
-<td>transPayload</td>
-<td>String</td>
-<td>请求的扩展信息</td>
-</tr>
-
-<tr>
-<td>transType</td>
-<td>String</td>
-<td>交易类型</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>appId</td>
-<td>String</td>
-<td>应用 ID</td>
-</tr>
-
-<tr>
-<td>userId</td>
-<td>String</td>
-<td>用户的标识 ID</td>
-</tr>
-
-<tr>
-<td>packageId</td>
-<td>String</td>
-<td>应用的packageId或者bundleId</td>
-</tr>
-
-<tr>
-<td>platform</td>
-<td>String</td>
-<td>操作系统平台</td>
-</tr>
-
-
-<tr>
-<td>deviceId</td>
-<td>String</td>
-<td>设备ID</td>
-</tr>
-
-<tr>
-<td>ifaaVer</td>
-<td>String</td>
-<td>IFAA 协议版本</td>
-</tr>
-
-<tr>
-<td>ifaaMsg</td>
-<td>String</td>
-<td>IFAA 消息</td>
-</tr>
-
-<tr style="text-align:center;"><th colspan="3">响应参数</th></tr>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-
-<tr>
-<td>code</td>
-<td>String</td>
-<td>响应状态值</td>
-</tr>
-
-<tr>
-<td>msg</td>
-<td>String</td>
-<td>ifaa 消息</td>
-</tr>
-
-</table>
-
-
-
-##### 6.2.3.7 指位更新
-
-
-<table>
-<tr style="text-align:center;"><th colspan="3">请求参数</th></tr>
-
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-
-<tr>
-<td>transPayload</td>
-<td>String</td>
-<td>请求的扩展信息</td>
-</tr>
-
-<tr>
-<td>transType</td>
-<td>String</td>
-<td>交易类型</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>appId</td>
-<td>String</td>
-<td>应用 ID</td>
-</tr>
-
-<tr>
-<td>userId</td>
-<td>String</td>
-<td>用户的标识 ID</td>
-</tr>
-
-<tr>
-<td>packageId</td>
-<td>String</td>
-<td>应用的packageId或者bundleId</td>
-</tr>
-
-<tr>
-<td>platform</td>
-<td>String</td>
-<td>操作系统平台</td>
-</tr>
-
-<tr>
-<td>ifaaVer</td>
-<td>String</td>
-<td>IFAA 协议版本</td>
-</tr>
-
-<tr>
-<td>ifaaMsg</td>
-<td>String</td>
-<td>IFAA 消息</td>
-</tr>
-
-<tr style="text-align:center;"><th colspan="3">响应参数</th></tr>
-<tr>
-<th>字段</th>
-<th>类型</th>
-<th>描述</th>
-</tr>
-
-<tr>
-<td>ver</td>
-<td>String</td>
-<td>消息版本</td>
-</tr>
-
-<tr>
-<td>code</td>
-<td>String</td>
-<td>响应状态值</td>
-</tr>
-
-<tr>
-<td>msg</td>
-<td>String</td>
-<td>响应消息</td>
-</tr>
-
-<tr>
-<td>transId</td>
-<td>String</td>
-<td>用来追踪请求的唯一标识</td>
-</tr>
-
-<tr>
-<td>authType</td>
-<td>int</td>
-<td>需要的生物识别类型</td>
-</tr>
-
-<tr>
-<td>deviceId</td>
-<td>String</td>
-<td>设备 ID</td>
-</tr>
-
-<tr>
-<td>token</td>
-<td>String</td>
-<td>代表用户和 IFAA 绑定消息的令牌</td>
-</tr>
-
-<tr>
-<td>time</td>
-<td>String</td>
-<td>响应消息发送的系统时间，精确到毫秒，共 17
-位，格式：20121227180001165</td>
-</tr>
-
-</table>
-
-
-
-##### 6.2.3.8 返回码说明
-
-
-
-bizContent 响应报文中返回响应码 code，可根据该值判断请求是否处理成功，code 值的定义详见下表：
-
-
-| 编号 | 响应码 | 响应信息 |
+| 常量名 | 值（String）| 描述 |
 | --- | --- | --- |
-| 1 | 0000 | 正常 |
-| 2 | 2999 | 系统异常，未知错误 |
-| 3 | 2001 | 参数错误。appId: NULL |
-| 4 | 2002 | appId 不存在。 |
-| 5 | 2003 | 参数错误。userId: NULL |
-| 6 | 2004 | 参数错误。transactionType: NULL |
-| 7 | 2005 | 参数错误。authType: NULL |
-| 8 | 2006 | 参数错误。packageId: NULL |
-| 9 | 2007 | 参数错误。platform: NULL |
-| 10 | 2008 | 参数错误。authType: XX |
-| 11 | 2009 | 参数错误。transactionId: NULL |
-| 12 | 2010 | IFAA 接入模式错误。ifaaMode：XX |
-| 13 | 2011 | 参数错误。ifaaMsg: NULL |
-| 14 | 2012 | IFAA 消息解析错误。ifaaMsg：XX |
-| 15 | 2013 | 调用 OPENAPI 请求发生错误。code: XX, msg: XX |
-| 16 | 2014 | OPENAPI 的响应内容为空。 |
-| 17 | 2015 | 参数错误。 |
-| 18 | 2016 | 注册初始化响应数据为空。 |
-| 19 | 2017 | 保存注册信息失败。 |
-| 20 | 2018 | 签名信息错误，注册失败。 |
-| 21 | 2019 | 没有找到 CHALLENGE 信息，注册失败。 |
-| 22 | 2020 | CHALLENGE 与 TOKEN 不匹配，注册失败。 |
-| 23 | 2021 | 无法找到指定的 TOKEN 信息，注册失败。 |
-| 24 | 2022 | 注册响应数据为空。 |
-| 25 | 2023 | 参数错误。Token: NULL |
-| 26 | 2024 | 无法找到指定的 TOKEN 信息，校验失败。 |
-| 27 | 2025 | 用户处于禁用状态，校验失败。 |
-| 28 | 2026 | 认证初始化响应数据为空。 |
-| 29 | 2027 | 无法找到指定的 TOKEN 信息，指位添加失败。 |
-| 30 | 2028 | 更新指位信息失败。 |
-| 31 | 2029 | 签名信息错误，校验失败。 |
-| 32 | 2030 | 没有找到 CHALLENGE 信息，校验失败。 |
-| 33 | 2031 | 指位已变更，指位不匹配。 |
-| 34 | 2032 | 认证响应数据为空。 |
-| 35 | 2033 | 指位更新响应数据为空。 |
-| 36 | 2034 | 用户处于禁用状态，无法注销。 |
-| 37 | 2035 | 无法找到指定的 TOKEN 信息，注销失败。 |
-| 38 | 2036 | 没有查找到设备信息。 |
-| 39 | 2037 | 未获取到服务器的签名数据。 |
-| 40 | 2038 | 不支持客户端指定的安全等级。注册失败。 |
-| 41 | 2039 | DeviceID 不符合长度要求。 |
-| 42 | 2040 | TRANSACTION ID 与 TOKEN 不匹配，注册失败。 |
-| 43 | 2041 | TRANSACTION PAYLOAD 与 TOKEN 不匹配，注册失败。 |
-| 44 | 2042 | CHALLENGE 已过期，注册失败。 |
-| 45 | 2043 | 设备校验响应数据为空。 |
-| 46 | 2044 | CHALLENGE 与 TOKEN 不匹配，校验失败。 |
-| 47 | 2045 | TRANSACTION ID 与 TOKEN 不匹配，校验失败。 |
-| 48 | 2046 | TRANSACTION PAYLOAD 与 TOKEN 不匹配，校验失败。 |
-| 49 | 2047 | CHALLENGE 已过期，注册失败。 |
-| 50 | 2048 | 给定的 TOKEN 与验证类型不匹配，校验失败。 |
-| 51 | 2049 | 给定的 TOKEN 与 DeviceID 不匹配，校验失败。 |
-| 52 | 2050 | 没有找到 CHALLENGE 信息，指位添加失败。 |
-| 53 | 2051 | CHALLENGE 与 TOKEN 不匹配，指位添加失败。 |
-| 54 | 2052 | HASH 与 TOKEN 不匹配，指位添加失败。 |
-| 55 | 2053 | CHALLENGE 已过期，注册失败。 |
-| 56 | 2054 | 注销响应数据为空。 |
-| 57 | 2055 | TLV 解析出错：XX |
-
-
-#### 6.2.4 签名验签算法
-
-
-使用的是：SHA256withRSA
-
-
-##### 6.2.4.1 签名方法 
-
-
-| 函数：| String signature(String data, String privateKey) |
-| --- | --- |
-| 参数说明：| data，是服务接口请求参数 bizContent 的值。privateKey，私钥 Base64 编码格式字符串。 |
-| 返回值：| 签名结果的 Base64 编码格式字符串 |
-
-
-##### 6.2.4.2 验签方法
-
-
-| 函数：| boolean verify(String data, String publicKey, String sign) |
-| --- | --- |
-| 参数说明：| data，是服务接口响应参数 bizContent 的值。publicKey，BizServer 服务公钥 Base64 编码格式字符串。sign，签名结果是服务接口响应参数 sign 的值 |
-| 返回值：| 验签结果，true：验签通过，false：验签失败 |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_STATUS_NOT_SUPPORT | 1 | 终端不支持 IFAA（该设备不能使用IFAA指纹或人脸）|
+| IFAA_STATUS_NOT_ENROLLED | 4 | 终端没有录入指纹/人脸 (此时可以引导用户去录入指纹/人脸再做操作) |
+| IFAA_STATUS_RESULT_TEE_ERROR | 17 | TEE 错误（手机厂商底层实现问题，可提示用户更新手机系统版本）|
+|IFAA_PERMISSION_DENIED  | 19 | 当前设备未获取相机权限（认证类型为人脸用户没有赋予相机权限） |
 
 
 
-### 6.3 终端接入
+##### 1.3.4.1.2 执行注册操作
 
 
-#### 6.3.1 Android
+```
+public void register(String ifaaMsg, IFAACallback ifaaCallback)
+```
+
+- 入参：
+1. `String ifaaMsg`
+
+注册第一次请求服务端返回的报文（客户服务端需要解析此次返回报文，当 `bizContent` 中的 `code` 属性值为`“0000”`时，调用该接口。其他情况按照服务端错误 `code` 列表进行相应的业务处理）
+
+2. `IFAACallback ifaaCallback`
 
 
-Android 终端的 API 详细请参考 Java doc 文件。文件可以在ᨀ供的 Demo 下的 doc 目录中找到。
+注册操作的回调，该回调中有 2 个实现：`onStatus`、`onResult`。
 
-SDK 包含下面 4 个文件：
+`onStatus` 返回用户按压指纹返回的各个状态，`onResult` 返回 `IFAAResult`，当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，`ifaaResult.getMsg()`
+为注册第二次请求需要发送到服务端的报文，其他的 `ifaaResult.getCode()` 可能出现的错误码如下表格：
 
-- etas-debug.aar
-- etas-release.aar
-- gson-2.8.0.jar
-- gt_sdk_2.2.jar
+| 常量名 | 值（String）| 描述 |
+| --- | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_SERVER_ERROR | 9 | IFAA 服务器错误 （服务器返回报文错误）|
+| IFAA_STATUS_RESULT_CANCELED | 12 | 用户取消（APP根据业务自行处理）|
+| IFAA_STATUS_RESULT_TIMEOUT | 13 | 本地指纹认证超时（APP提示用户按压指纹）|
+| IFAA_STATUS_RESULT_AUTH_FAI | 14 | 验证失败，系统指纹不匹配（APP提示用户按压本地录入的指纹）|
+| IFAA_STATUS_RESULT_SYSTEM_BLOCK | 15 | 连续多次校验失败，指纹校验被暂时锁定（各个厂商实现不同，一般1分钟之内可以解锁，继续使用指纹功能）|
+| IFAA_STATUS_RESULT_FALLBACK | 16 | 点击了 FALLBACK 按钮（用户点击了指纹弹框上的“输入密码”，APP根据业务自行处理）|
+| IFAA_STATUS_RESULT_TEE_ERROR | 17 | TEE 错误（手机厂商底层实现问题，可提示用户更新手机系统版本）|
+| IFAA_STATUS_RESULT_SYSTEM_ERROR | 18 | 手机系统问题，请升级系统版本|
 
-后面的两个 jar 包是 SDK 的依赖库。两个 aar 文件一个是为了开发用的，一个为了上线用的。
+
+- 出参：无
 
 
-## 7. 常见问题
 
-任何技术问题，可以联系一砂技术窗口。
+##### 1.3.4.1.3 完成注册操作
 
+
+```
+public IFAAResult regFinish(String ifaaMsg)
+```
+
+- 入参：`String ifaaMsg`
+
+注册第二次请求服务端返回的报文（客户服务端需要解析此次返回报文，当服务端返回的 `bizContent` 中的
+`code` 属性值为`“0000”`时，调用该接口，进行本地完成注册操作。其他情况按照服务端错误 `code` 列表
+进行相应的业务处理）
+
+- 出参：`IFAAResult ifaaResult`
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，注册成功；其他的 `ifaaResult.getCode()` 可能出现的错误码如下表格：
+
+| 常量名 | 值（String） | 描述 |
+| --- | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_SERVER_ERROR | 9 | IFAA 服务器错误 （服务器返回报文错误）|
+
+
+
+
+#### 1.3.4.2 认证
+
+
+
+![认证](images/IFAA_002.png)
+
+<p style="text-align:center;">认证</p>
+
+
+SDK 提供 `com.esandinfo.ifaa.biz.IFAAAuthentication` 实现 IFAA 的认证操作, 主要有如下 2 个函数：
+
+
+```
+// IFAA 认证初始化
+public IFAAResult authInit()
+
+// 执行本地认证操作
+public void auth(String ifaaMsg, IFAACallback ifaaCallback)
+```
+
+
+##### 1.3.4.2.1 认证初始化
+
+
+```
+public IFAAResult authInit()
+```
+
+- 入参：无
+- 出参：`IFAAResult ifaaResult`
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，`ifaaResult.getMsg()` 为认证第一次请求需要发送到服务
+端的报文；其他的 `ifaaResult.getCode()` 可能出现的错误码如下表格：
+
+
+| 常量名 | 值（String） | 描述 |
+| ---  | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_STATUS_NOT_SUPPORT | 1 | 终端不支持 IFAA（该设备不能使用IFAA指纹或人脸）|
+| IFAA_STATUS_NOT_ENROLLED |4 | 终端没有录入指纹/人脸 (此时可以引导用户去录入指纹/人脸再做操作)|
+| IFAA_STATUS_RESULT_TEE_ERROR | 17 | TEE 错误（手机厂商底层实现问题，可提示用户更新手机系统版本）|
+| IFAA_PERMISSION_DENIED | 19 | 当前设备未获取相机权限（认证类型为人脸用户没有赋予相机权限）|
+
+
+
+##### 1.3.4.2.2 认证操作
+
+
+```
+public void auth(String ifaaMsg, IFAACallback ifaaCallback)
+```
+
+
+- 入参：
+
+1. `String ifaaMsg`
+
+认证第一次请求服务端返回的报文（客户服务端需要解析此次返回报文，当服务端返回 `bizContent` 中的
+`code` 属性值为`“0000”`时，调用该接口，进行认证操作。其他情况按照服务端错误 `code` 列表进行相应
+的业务处理）
+
+2. `IFAACallback ifaaCallback`
+
+认证操作的回调，该回调中有 2 个实现：`onStatus`、`onResult`。
+
+`onStatus` 返回用户按压指纹返回的各个状态，`onResult` 返回 `IFAAResult`，当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，`ifaaResult.getMsg()`
+为认证第二次请求需要发送到服务端的报文。当收到服务端返回报文时，APP 根据服务端返回 `bizContent`
+中的 `code` 值分情况进行处理，当 `code` 为`“0000”`时，认证成功；当 `code` 值为`“2031”`时，进行指位
+更新操作，需调用指位更新接口。其他的 `ifaaResult.getCode()` 可能出现的错误码如下表格：
+
+
+| 常量名 | 值（String）| 描述 |
+| --- | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_SERVER_ERROR | 9 | IFAA 服务器错误 （服务器返回报文错误）|
+| IFAA_STATUS_RESULT_CANCELED | 12 | 用户取消（APP根据业务自行处理）|
+| IFAA_STATUS_RESULT_TIMEOUT | 13 | 本地指纹认证超时（APP提示用户按压指纹）|
+| IFAA_STATUS_RESULT_AUTH_FAI | 14 | 验证失败，系统指纹不匹配（APP提示用户按压本地录入的指纹）|
+| IFAA_STATUS_RESULT_SYSTEM_BLOCK | 15 | 连续多次校验失败，指纹校验被暂时锁定（各个厂商实现不同，一般1分钟之内可以解锁，继续使用指纹功能）|
+| IFAA_STATUS_RESULT_FALLBACK | 16 | 点击了 FALLBACK 按钮（用户点击了指纹弹框上的“输入密码”，APP根据业务自行处理）|
+| IFAA_STATUS_RESULT_TEE_ERROR | 17 | TEE 错误（手机厂商底层实现问题，可提示用户更新手机系统版本）|
+| IFAA_STATUS_RESULT_SYSTEM_ERROR | 18 | 手机系统问题，请升级系统版本 |
+
+
+- 出参：无
+
+
+
+
+#### 1.3.4.3 查询注册状态
+
+
+
+![查询注册状态](images/IFAA_003.png)
+
+<p style="text-align:center;">查询注册状态</p>
+
+
+对外提供 `com.esandinfo.ifaa.biz.IFAAStatus` 类，让用户通过此类的如下接口实现 ifaa 注册状态的查询：
+
+
+```
+// 查询 ifaa 注册状态初始化
+public IFAAResult checkStatusInit()
+
+// 查询 ifaa 注册状态
+public IFAAResult checkStatus(String msg)
+```
+
+
+##### 1.3.4.3.1 查询 IFAA 注册状态初始化
+
+
+```
+public IFAAResult checkStatusInit()
+```
+
+
+- 入参：无
+
+- 出参：`IFAAResult ifaaResult`
+
+
+当 `ifaaResult.getCode()` 为 `STATUS_REGISTERED` 时，表示本地取到了 `token`，已经是注册状态，就不发请求到服务端。
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，`ifaaResult.getMsg()` 为查询注册状态请求需要发送到服务端的报文；
+其他的 `ifaaResult.getCode()` 可能出现的错误码如下表格：
+
+
+| 常量名 | 值（String）| 描述 |
+| --- | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_STATUS_REGISTERED | 6 | IFAA 已经注册 (这只是一个状态，并不是错误) |
+| IFAA_STATUS_RESULT_TEE_ERROR | 17 | TEE 错误（手机厂商底层实现问题，可提示用户更新手机系统版本）|
+
+
+
+
+##### 1.3.4.3.2 查询 IFAA 注册状态
+
+
+
+
+```
+public IFAAResult checkStatus(String msg)
+```
+
+- 入参：`String ifaaMsg`
+
+查询注册状态请求服务端返回的报文（客户服务端需要解析此次返回报文，当服务端返回 `bizContent` 中的
+`code` 属性值为`“0000”`时，调用该接口。其他情况按照服务端错误 `code` 列表进行相应的业务处理）
+
+
+- 出参：`IFAAResult ifaaResult`
+
+当 `ifaaResult.getCode()` 为 `STATUS_REGISTERED` 时，已经注册；其他的 `ifaaResult.getCode()` 可能出
+现的错误码如下表格：
+
+
+
+| 常量名 | 值（String）| 描述 |
+| --- | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_STATUS_NOT_REGISTERED | 5 | IFAA 尚未注册 (比如认证/注销/指位更新等操作都需要注册后才可以进行) |
+| IFAA_STATUS_REGISTERED | 6 | IFAA 已经注册 (这只是一个状态，并不是错误)|
+| IFAA_SERVER_ERROR | 9 | IFAA 服务器错误 （此错误发生在服务器）|
+| IFAA_STATUS_DELETED | 10 | 本地指纹已经注册，但是注册的指纹模组数据已经被删除（此手机不支持多指位，并且注册的那个指位已经被删除，需要注销后在注册方能使用）|
+
+
+
+#### 1.3.4.4 指位更新
+
+
+
+SDK 提供了 `com.esandinfo.ifaa.biz.IFAATemplateUpdater` 类实现指位更新操作, 主要有如下函数
+
+
+```
+// 完成指位更新操作
+public IFAAResult templateUpdater(String ifaaMessage)
+```
+
+
+
+##### 1.3.4.4.1 指位更新
+
+
+
+
+
+![指位更新](images/IFAA_004.png)
+
+<p style="text-align:center;">指位更新</p>
+
+
+```
+public IFAAResult templateUpdater(String ifaaMessage)
+```
+
+
+- 入参：`String ifaaMessage`
+
+
+当注册第二次请求服务端返回报文 `bizContent` 中 `code` 值为`“2031”`时，调用该接口，接口入参为指纹认
+证第二次的请求报文，即 `auth` 方法的回调返回结果对象 `ifaaResult` 的 `msg`(此时 `ifaaResult.code` 为
+`IFAA_SUCCESS`）
+
+- 出参：`IFAAResult ifaaResult`
+
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，`ifaaResult.getMsg()` 为指纹更新请求需要发送到服务端
+的报文；客户服务端需要解析指位更新返回报文 `bizContent` 中的 `code` 值为`“0000”`时，指位更新成功。
+其他情况按照服务端错误 `code` 列表进行相应的业务处理
+
+
+
+#### 1.3.4.5 注销
+
+
+
+
+
+
+![注销](images/IFAA_05.png)
+
+<p style="text-align:center;">注销</p>
+
+
+
+SDK 提供 `com.esandinfo.ifaa.biz.IFAADeregister` 类进行 IFAA 注销操作，主要有如下函数：
+
+
+```
+// 注销初始化
+public IFAAResult deregInit()
+
+// 执行终端注销操作
+public void dereg(String ifaaMsg, IFAACallback ifaaCallback)
+```
+
+
+
+##### 1.3.4.5.1 注销初始化
+
+
+```
+public IFAAResult deregInit()
+```
+
+- 入参：无
+
+- 出参：`IFAAResult ifaaResult`
+
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，`ifaaResult.getMsg()` 为注册请求发送到服务端的报文；
+其他的 `ifaaResult.getCode()` 可能出现的错误码如下表格：
+
+
+| 常量名 | 值（String）| 描述 |
+| --- | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_STATUS_NOT_SUPPORT | 1 | 终端不支持 IFAA（该设备不能使用IFAA指纹或人脸）|
+| IFAA_STATUS_NOT_REGISTERED | 5 | IFAA 尚未注册 (比如认证/注销/指位更新等操作都需要注册后才可以进行) |
+| IFAA_STATUS_RESULT_TEE_ ERROR | 17 | TEE 错误（手机厂商底层实现问题，可提示用户更新手机系统版本）|
+
+
+
+##### 1.3.4.5.2 执行终端注销操作
+
+
+
+- 入参：
+
+1. `String ifaaMsg`
+
+注销请求服务端返回的报文（客户服务端需要解析此次返回报文，当服务端返回 `bizContent` 中的 `code` 属
+性值为`“0000”`时，调用该接口。其他情况按照服务端错误 `code` 列表进行相应的业务处理）
+
+2. `IFAACallback ifaaCallback`
+
+认证操作的回调，该回调中有 2 个实现：`onStatus`、`onResult`。
+
+此处 `onStatus` 无用，`onResult` 返回 `IFAAResult`，当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，注销成功；其他的 `ifaaResult.getCode()`
+可能出现的错误码如下表格：
+
+
+
+| 常量名 | 值（String） | 描述 |
+| --- | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_CLIENT_ERROR | 8 | 本地执行异常 (错误发生在app执行过程中)|
+| IFAA_SERVER_ERROR | 9 | IFAA 服务器错误 （此错误发生在服务器）|
+
+
+- 出参：无
+
+
+
+
+
+### 1.3.5 接入方式二（SDK 直连）
+
+为了方便接入方接入 `IFAA` 功能，提供 `SDK` 直接连接 `eDIS` 服务的连接方式。
+
+
+#### 1.3.5.1 注册
+
+
+在调用注册前，接入方 APP 需要先请求 APP 服务端获取报文，获取到的报文作为参数传入注册方法中。
+
+
+```
+ifaaManager.reg(msg, new IFAACallback() {}
+```
+
+- 入参：
+
+1、接入方 APP 需要先请求 APP 服务端成功返回的报文
+
+2、回调中返回 `IFAAResult ifaaResult`
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，注册成功。
+
+- 出参：无
+
+
+
+
+
+#### 1.3.5.2 认证
+
+
+
+```
+ifaaManager.auth(msg, new IFAACallback() {})
+```
+
+
+- 入参：
+
+1、接入方 APP 需要先请求 APP 服务端成功返回的报文
+
+2、回调中返回 `IFAAResult ifaaResult`
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，再发一次请求到服务到进行确认，发送的报文为 `ifaaResult.getMsg()`。
+
+当 `ifaaResult.getCode()` 为 `IFAA_WRONG_AUTHDATAINDEX` 时，调用指位更新接口，进行指位更新操作。
+
+
+- 出参：无
+
+
+
+#### 1.3.5.3 查询注册状态
+
+
+```
+ifaaManager.checkStatus(msg, new IFAACallback() {})
+```
+
+
+- 入参：
+
+1、接入方 APP 需要先请求 APP 服务端成功返回的报文
+
+2、回调中返回 `IFAAResult ifaaResult`
+
+当 `ifaaResult.getCode()` 为 `IFAA_STATUS_REGISTERED` 时，已经注册。
+
+- 出参：无
+
+
+
+#### 1.3.5.4 指位更新
+
+
+```
+ifaaManager.templateUpdate(msg, new IFAACallback() {})
+```
+
+
+- 入参：
+
+1、接入方 APP 需要先请求 APP 服务端成功返回的报文
+
+2、回调中返回 `IFAAResult ifaaResult`
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，再发一次请求到服务到进行确认，发送的报文为 `ifaaResult.getMsg()`. 
+
+- 出参：无
+
+
+
+
+#### 1.3.5.5 注销
+
+
+```
+ifaaManager.unReg(msg, new IFAACallback() {})
+```
+
+
+- 入参：
+
+1、接入方 APP 需要先请求 APP 服务端成功返回的报文
+
+2、回调中返回 `IFAAResult ifaaResult`
+
+当 `ifaaResult.getCode()` 为 `IFAA_SUCCESS` 时，注销成功。
+
+
+- 出参：无
+
+
+
+
+
+## 1.4 错误码
+
+
+### 1.4.1 `IFAAResult` 实体类中的 `code` 值
+
+
+| 常量名 | 值（String） | 描述 |
+| --- | --- | --- |
+| IFAA_SUCCESS | 0 | 成功 |
+| IFAA_STATUS_NOT_SUPPORT | 1 | 终端不支持 IFAA（该设备不能使用IFAA指纹或人脸）|
+| IIFAA_STATUS_FINGERPRINT | 2 | 终端支持IFAA的指纹服务（iOS独有）|
+| IIFAA_STATUS_FACE_ID | 3 | 终端支持IFAA的人脸服务（iOS独有）|
+| IIFAA_STATUS_NOT_ENROLLED | 4 | 终端没有录入指纹/人脸 (此时可以引导用户去录入指纹/人脸再做操作)|
+| IFAA_STATUS_NOT_REGISTERED | 5 | IFAA 尚未注册 (比如认证/注销/指位更新等操作都需要注册后才可以进行)|
+| IFAA_STATUS_REGISTERED | 6 | IFAA 已经注册 (这只是一个状态，并不是错误)|
+| IFAA_STATUS_PASSCODE_NOT_SET | 7 | 尚未设置屏幕锁密码（IFAA 需要设置屏幕锁后才能进行，否则不安全，此处可引导用户去设置屏幕锁，iOS独有）|
+| IFAA_CLIENT_ERROR | 8 | 本地执行异常 (错误发生在app执行过程中)|
+| IFAA_SERVER_ERROR | 9 | IFAA 服务器错误 （此错误发生在服务器）|
+| IFAA_STATUS_DELETED | 10 | 本地指纹已经注册，但是注册的指纹模组数据已经被删除 |
+| IFAA_CLIENT_ERROR_MULTI_FP_NOT_SUPPORT | 11 | 此手机不支持多指位 |
+| IFAA_STATUS_RESULT_CANCELED | 12 | 用户取消 |
+| IFAA_STATUS_RESULT_TIMEOUT | 13 | 本地指纹认证超时（APP提示用户按压指纹）|
+| IFAA_STATUS_RESULT_AUTH_ FAI | 14 | 验证失败，系统指纹不匹配（APP提示用户按压本地录入的指纹）|
+| IFAA_STATUS_RESULT_SYSTEM_BLOCK | 15 | 连续多次校验失败，指纹校验被暂时锁定（各个厂商实现不同，一般1分钟之内可以解锁，继续使用指纹功能）|
+| IFAA_STATUS_RESULT_FALLBACK | 16 | 点击了 FALLBACK 按钮 |
+| IFAA_STATUS_RESULT_TEE_ERROR | 17 | TEE 错误（手机厂商底层实现问题，可提示用户更新手机系统版本）|
+| IFAA_STATUS_RESULT_SYSTEM_ERROR | 18 | 手机系统问题，请升级系统版本 |
+| IFAA_PERMISSION_DENIED | 19 | 当前设备未获取相机权限（认证类型为人脸用户没有赋予相机权限）|
