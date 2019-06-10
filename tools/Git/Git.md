@@ -401,5 +401,13 @@ git remote add <name> <url>
 
 
 
+# 提交到远程仓库
 
+```
+# 提交到远程仓库
+git push origin master 
+
+# 查看远程仓库地址
+git remote show origin
+```
 
