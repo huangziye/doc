@@ -411,3 +411,15 @@ git push origin master
 git remote show origin
 ```
 
+# 拉取
+
+```
+# pull相当于fetch和merge
+pull = fetch + merge
+
+git fetch [远程库地址别名] [远程分支名]
+
+git merge [远程库地址别名] [远程分支名]
+
+git pull [远程库地址别名] [远程分支名]
+```
