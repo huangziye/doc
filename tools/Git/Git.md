@@ -337,6 +337,69 @@ git tag -d <tagname>
 
 
 
+# remote 的用法
+
+- 查看关联的远程仓库信息
+
+```
+# 查看关联的远程仓库的名称
+git remote
+
+# 查看关联的远程仓库的详细信息
+git remote -v
+```
+
+
+- 添加远程仓库的关联
+
+远程仓库的名称一般默认为 `origin` ，当然，你可以设置为其他的名称。
+
+通过 `git clone` 下载项目到本地时，项目文件夹中的 `.git` 目录就是版本库目录。
+
+`.git` 目录中的 `config` 文件中有远程仓库的关联配置。
+
+```
+# git_url 为你的远程仓库的 url，可采用 http 协议或 ssh（git） 协议
+git remote add origin <url>
+```
+
+- 删除远程仓库的关联
+
+```
+git remote remove <name>
+```
+
+- 修改远程仓库的关联
+
+比如，之前你关联的远程仓库使用的协议是 `http` ，你想将关联的远程仓库的 `url` 改为 `ssh` 协议的。
+
+修改关联的远程仓库的方法，主要有三种。
+
+第一种：使用 `git remote set-url` 命令，更新远程仓库的 `url`
+
+```
+git remote set-url origin <newurl>
+```
+
+第二种：先删除之前关联的远程仓库，再来添加新的远程仓库关联
+
+# 删除关联的远程仓库
+
+```
+git remote remove <name>
+```
+ 
+# 添加新的远程仓库关联
+
+```
+git remote add <name> <url>
+```
+
+远程仓库的名称推荐使用默认的名称 `origin` 。
+
+第三种：直接修改项目目录下的 `.git` 目录中的 `config` 配置文件。
+
+
 
 
 
