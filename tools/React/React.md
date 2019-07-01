@@ -32,3 +32,24 @@ node -v
 ```
 npm -v
 ```
+
+
+# 安装脚手架工具 `create-react-app`
+
+
+```react
+npm install -g create-react-app
+
+# 创建react项目
+create-react-app myapp
+
+cd myapp
+
+npm start
+```
+
+
+
+
+
+

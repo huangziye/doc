@@ -1,4 +1,23 @@
 
+# 在线创建 `Spring Boot` 项目
+
+```
+https://start.spring.io/
+```
+
+
+# Spring Boot 2.0 核心特性
+
+
+
+## 组件自动装配
+
+- 激活：`@EnableAutoConfiguration`
+- 配置：`/META-INF/spring.factories`
+- 实现：`XXXAutoConfiguration`
+
+
+
 
 # 注解
 
