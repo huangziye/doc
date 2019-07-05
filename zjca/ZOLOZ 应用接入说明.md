@@ -20,7 +20,7 @@
 	</tr>
 	<tr  style="height:35px">
 	  <td style="text-align:center;">2019/5/8</td>
-	  <td style="text-align:center;">1.0</td>
+	  <td style="text-align:center;">1.1.0</td>
 	  <td style="text-align:center;">版本创建</td>
 	  <td style="text-align:center;">黄子烨</td>
 	</tr>

@@ -32,3 +32,30 @@ node -v
 ```
 npm -v
 ```
+
+
+
+# chrome 插件
+
+- React Developer Tools
+- Redux DevTools
+
+
+代码中使用添加redux
+
+```
+yarn add redux
+```
+
+# 虚拟DOM
+
+虚拟 DOM 就是一个JS对象，用它来描述真实的 DOM。
+
+
+# redux 使用 redux-thunk 中间件进行ajax请求发送
+
+# redux 使用 redux-saga
+
+# immutable
+# redux-immutable
+# react-router-dom react路由
